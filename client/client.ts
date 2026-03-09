@@ -1,20 +1,25 @@
 import * as anchor from "@coral-xyz/anchor";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 
+// ---------------------
+// Provider
+// ---------------------
 const provider = anchor.AnchorProvider.env();
 anchor.setProvider(provider);
 
-const program = anchor.workspace.Biblioteca;
+// programa (nombre debe coincidir con el mod en Rust)
+const program = anchor.workspace.Restaurante;
 
+// wallet
 const owner = provider.wallet.publicKey;
 
 // ---------------------
-// PDA
+// PDA del restaurante
 // ---------------------
-function pdaBiblioteca(ownerPk) {
+function pdaRestaurante(ownerPk: PublicKey) {
   return PublicKey.findProgramAddressSync(
     [
-      Buffer.from("biblioteca"),
+      Buffer.from("restaurante"),
       ownerPk.toBuffer()
     ],
     program.programId
@@ -22,93 +27,93 @@ function pdaBiblioteca(ownerPk) {
 }
 
 // ---------------------
-// Crear biblioteca
+// Crear restaurante
 // ---------------------
-async function crearBiblioteca(nombre) {
+async function crearRestaurante(nombre: string) {
 
-  const [bibliotecaPDA] = pdaBiblioteca(owner);
+  const [restaurantePDA] = pdaRestaurante(owner);
 
   const tx = await program.methods
-    .crearBiblioteca(nombre)
+    .crearRestaurante(nombre)
     .accounts({
       owner: owner,
-      biblioteca: bibliotecaPDA,
+      restaurante: restaurantePDA,
       systemProgram: SystemProgram.programId,
     })
     .rpc();
 
-  console.log("Biblioteca creada");
+  console.log("Restaurante creado");
   console.log("TX:", tx);
 }
 
 // ---------------------
-// Agregar libro
+// Agregar platillo
 // ---------------------
-async function agregarLibro(nombre, paginas) {
+async function agregarPlatillo(nombre: string, precio: number) {
 
-  const [bibliotecaPDA] = pdaBiblioteca(owner);
+  const [restaurantePDA] = pdaRestaurante(owner);
 
   const tx = await program.methods
-    .agregarLibro(nombre, paginas)
+    .agregarPlatillo(nombre, precio)
     .accounts({
       owner,
-      biblioteca: bibliotecaPDA
+      restaurante: restaurantePDA
     })
     .rpc();
 
-  console.log("Libro agregado:", nombre);
+  console.log("Platillo agregado:", nombre);
 }
 
 // ---------------------
-// Eliminar libro
+// Eliminar platillo
 // ---------------------
-async function eliminarLibro(nombre) {
+async function eliminarPlatillo(nombre: string) {
 
-  const [bibliotecaPDA] = pdaBiblioteca(owner);
+  const [restaurantePDA] = pdaRestaurante(owner);
 
   const tx = await program.methods
-    .eliminarLibro(nombre)
+    .eliminarPlatillo(nombre)
     .accounts({
       owner,
-      biblioteca: bibliotecaPDA
+      restaurante: restaurantePDA
     })
     .rpc();
 
-  console.log("Libro eliminado:", nombre);
+  console.log("Platillo eliminado:", nombre);
 }
 
 // ---------------------
-// Alternar estado
+// Cambiar disponibilidad
 // ---------------------
-async function alternarEstado(nombre) {
+async function cambiarDisponibilidad(nombre: string) {
 
-  const [bibliotecaPDA] = pdaBiblioteca(owner);
+  const [restaurantePDA] = pdaRestaurante(owner);
 
   await program.methods
-    .alternarEstado(nombre)
+    .cambiarDisponibilidad(nombre)
     .accounts({
       owner,
-      biblioteca: bibliotecaPDA
+      restaurante: restaurantePDA
     })
     .rpc();
 
-  console.log("Estado cambiado:", nombre);
+  console.log("Disponibilidad cambiada:", nombre);
 }
 
 // ---------------------
-// Ver libros
+// Ver menú
 // ---------------------
-async function verLibros() {
+async function verMenu() {
 
-  const [bibliotecaPDA] = pdaBiblioteca(owner);
+  const [restaurantePDA] = pdaRestaurante(owner);
 
-  const cuenta = await program.account.biblioteca.fetch(bibliotecaPDA);
+  const cuenta = await program.account.restaurante.fetch(restaurantePDA);
 
-  console.log("Biblioteca:", cuenta.nombre);
+  console.log("Restaurante:", cuenta.nombre);
 
-  cuenta.libros.forEach((libro, i) => {
+  cuenta.platillos.forEach((platillo: any, i: number) => {
     console.log(
-      `#${i} -> nombre=${libro.nombre}, paginas=${libro.paginas}, disponible=${libro.disponible}`
+      `#${i} -> nombre=${platillo.nombre}, precio=${platillo.precio}, disponible=${platillo.disponible}`
     );
   });
 }
@@ -118,13 +123,20 @@ async function verLibros() {
 // ---------------------
 (async () => {
 
-  //await crearBiblioteca("Alejandria");
+  // crear restaurante
+  await crearRestaurante("Santo Chilaquil");
 
-  //await agregarLibro("Mistborn", 541);
-  //await agregarLibro("Red Rising", 382);
-  await verLibros();
-  //await alternarEstado("Mistborn");
-  //await eliminarLibro("Red Rising");
-  //await verLibros();
+  // agregar platillos
+  //await agregarPlatillo("Tacos", 35);
+  await agregarPlatillo("Quesadilla", 45);
+
+  // ver menu
+  await verMenu();
+
+  // cambiar disponibilidad
+  //await cambiarDisponibilidad("Tacos");
+
+  // eliminar platillo
+  //await eliminarPlatillo("Quesadilla");
 
 })();
