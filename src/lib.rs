@@ -1,126 +1,162 @@
 use anchor_lang::prelude::*;
 
-declare_id!("7YW31YWjJ2XCtUohnJARCkgZLF3tRvQoTyhBoBpuepUA");
+declare_id!("4fbRFPrKfeosJ21nWoPJvdV1ZZzVwXQ6YjLc9JwR1dPC");
 
 #[program]
-pub mod biblioteca{
+pub mod restaurante {
     use super::*;
 
-    pub fn crear_biblioteca(context: Context<NuevaBiblioteca>, nombre: String) -> Result<()>{
+    // Crear el restaurante
+    pub fn crear_restaurante(context: Context<NuevoRestaurante>, nombre: String) -> Result<()> {
+
         let owner = context.accounts.owner.key();
-        let libros: Vec<Libro> = Vec::new();
-        
-        context.accounts.biblioteca.set_inner(Biblioteca{
+        let platillos: Vec<Platillo> = Vec::new();
+
+        context.accounts.restaurante.set_inner(Restaurante{
             owner,
             nombre,
-            libros,
+            platillos,
         });
 
         Ok(())
     }
-    pub fn agregar_libro(context: Context<NuevoLibro>, nombre: String, paginas: u16) -> Result<()>{
-        let libro = Libro{
+
+    // Agregar platillo al menú
+    pub fn agregar_platillo(
+        context: Context<NuevoPlatillo>,
+        nombre: String,
+        precio: u16
+    ) -> Result<()> {
+
+        let platillo = Platillo{
             nombre,
-            paginas,
+            precio,
             disponible: true,
         };
-        context.accounts.biblioteca.libros.push(libro);
+
+        context.accounts.restaurante.platillos.push(platillo);
 
         Ok(())
     }
-    pub fn eliminar_libro(context: Context<NuevoLibro>, nombre: String) -> Result<()>{
-        let libros: &mut Vec<Libro> = &mut context.accounts.biblioteca.libros;
 
-        for libro in 0..libros.len(){
-            if libros[libro].nombre == nombre {
-                libros.remove(libro);
-                msg!("Libro {nombre} eliminado!");
-                return Ok(());
+    // Eliminar platillo
+    pub fn eliminar_platillo(context: Context<NuevoPlatillo>, nombre: String) -> Result<()> {
+
+        let platillos = &mut context.accounts.restaurante.platillos;
+
+        for i in 0..platillos.len(){
+
+            if platillos[i].nombre == nombre{
+
+                platillos.remove(i);
+
+                msg!("Platillo {} eliminado del menú", nombre);
+
+                return Ok(())
             }
         }
-    
-        Err(Errores::LibroNoExiste.into())
+
+        Err(Errores::PlatilloNoExiste.into())
     }
 
-    pub fn ver_libros(context: Context<NuevoLibro>) -> Result<()>{
-            let libros= &context.accounts.biblioteca.libros;
-            msg!("La lista de libros es: {:#?}", libros);
+    // Ver menú
+    pub fn ver_menu(context: Context<NuevoPlatillo>) -> Result<()> {
+
+        let platillos = &context.accounts.restaurante.platillos;
+
+        msg!("Menú del restaurante: {:#?}", platillos);
 
         Ok(())
-
     }
-    pub fn alternar_estado(context: Context<NuevoLibro>, nombre: String) -> Result<()>{
-            let libros: &mut Vec<Libro> = &mut context.accounts.biblioteca.libros;
 
-            for libro in 0..libros.len(){
-                let estado = libros[libro].disponible;
+    // Cambiar disponibilidad (si hay o no en existencia)
+    pub fn cambiar_disponibilidad(
+        context: Context<NuevoPlatillo>,
+        nombre: String
+    ) -> Result<()> {
 
-                if libros[libro].nombre == nombre {
-                    let nuevo_estado = !estado; 
-                    libros[libro].disponible = nuevo_estado; 
+        let platillos = &mut context.accounts.restaurante.platillos;
 
-                    msg!(
-                        "El libro {} ahora tiene un valor de disponibilidad: {}", 
-                        nombre,
-                        nuevo_estado
-                        );
-                    return Ok(());
-                }
+        for i in 0..platillos.len(){
+
+            if platillos[i].nombre == nombre{
+
+                let estado_actual = platillos[i].disponible;
+                let nuevo_estado = !estado_actual;
+
+                platillos[i].disponible = nuevo_estado;
+
+                msg!(
+                    "El platillo {} ahora está disponible: {}",
+                    nombre,
+                    nuevo_estado
+                );
+
+                return Ok(())
             }
-    
-        Err(Errores::LibroNoExiste.into())
-    }
-    
-    #[error_code]
-    pub enum Errores{
-        #[msg("Error, no eres el propietario de la cuenta.")]
-        NoEresElOwner,
+        }
 
-        #[msg("Error, el libro proporcionado no existe.")]
-        LibroNoExiste,
-                
+        Err(Errores::PlatilloNoExiste.into())
     }
+}
+
+#[error_code]
+pub enum Errores{
+
+    #[msg("Error, no eres el propietario.")]
+    NoEresElOwner,
+
+    #[msg("El platillo no existe.")]
+    PlatilloNoExiste,
 }
 
 #[account]
 #[derive(InitSpace)]
-pub struct Biblioteca{
-    owner: Pubkey,
+pub struct Restaurante{
+
+    pub owner: Pubkey,
 
     #[max_len(60)]
-    nombre: String,
-    
-    #[max_len(10)]
-    libros: Vec<Libro>,
-} 
+    pub nombre: String,
+
+    #[max_len(20)]
+    pub platillos: Vec<Platillo>,
+}
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace, PartialEq, Debug)]
-pub struct Libro{
+pub struct Platillo{
+
     #[max_len(60)]
-    nombre: String,
-    paginas: u16,
-    disponible: bool,
+    pub nombre: String,
+
+    pub precio: u16,
+
+    pub disponible: bool,
 }
 
 #[derive(Accounts)]
-pub struct NuevaBiblioteca<'info>{
+pub struct NuevoRestaurante<'info>{
+
     #[account(mut)]
     pub owner: Signer<'info>,
-    
+
     #[account(
         init,
         payer = owner,
-        space = Biblioteca::INIT_SPACE + 8,
-        seeds = [b"biblioteca",owner.key().as_ref()],
+        space = Restaurante::INIT_SPACE + 8,
+        seeds = [b"restaurante", owner.key().as_ref()],
         bump
     )]
-    pub biblioteca: Account<'info, Biblioteca>,
+    pub restaurante: Account<'info, Restaurante>,
+
     pub system_program: Program<'info, System>,
 }
+
 #[derive(Accounts)]
-pub struct NuevoLibro<'info>{
+pub struct NuevoPlatillo<'info>{
+
     pub owner: Signer<'info>,
-    
+
     #[account(mut)]
-    pub biblioteca: Account<'info, Biblioteca>,    
+    pub restaurante: Account<'info, Restaurante>,
 }
