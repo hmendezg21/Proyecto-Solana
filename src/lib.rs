@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 // ID del Solana Program, este espacio se llena automaticamente al haver el "build"
 declare_id!("");
 
+// Hice un cambio de prueba
 #[program] // Macro que convierte codigo de Rust a Solana. Apartir de aqui empieza tu codigo!
 pub mod biblioteca {
     use super::*; // Importa todas los structs y enums definidos fuera del modulo
