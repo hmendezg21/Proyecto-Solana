@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("");
+declare_id!("7YW31YWjJ2XCtUohnJARCkgZLF3tRvQoTyhBoBpuepUA");
 
 #[program]
 pub mod biblioteca{
@@ -28,7 +28,19 @@ pub mod biblioteca{
 
         Ok(())
     }
-    //pub fn eliminar_libro(context: Context<NuevoLibro>) -> Result<()>{Ok(())}
+    pub fn eliminar_libro(context: Context<NuevoLibro>, nombre: String) -> Result<()>{
+        let libros: &mut Vec<Libro> = &mut context.accounts.biblioteca.libros;
+
+        for libro in 0..libros.len(){
+            if libros[libro].nombre == nombre {
+                libros.remove(libro);
+                msg!("Libro {nombre} eliminado!");
+                return Ok(());
+            }
+        }
+    
+        Err(Errores::LibroNoExiste.into())
+    }
 
     pub fn ver_libros(context: Context<NuevoLibro>) -> Result<()>{
             let libros= &context.accounts.biblioteca.libros;
@@ -37,7 +49,37 @@ pub mod biblioteca{
         Ok(())
 
     }
-    //pub fn alternar_estado(context: Context<NuevoLibro>) -> Result<()>{        Ok(())}
+    pub fn alternar_estado(context: Context<NuevoLibro>, nombre: String) -> Result<()>{
+            let libros: &mut Vec<Libro> = &mut context.accounts.biblioteca.libros;
+
+            for libro in 0..libros.len(){
+                let estado = libros[libro].disponible;
+
+                if libros[libro].nombre == nombre {
+                    let nuevo_estado = !estado; 
+                    libros[libro].disponible = nuevo_estado; 
+
+                    msg!(
+                        "El libro {} ahora tiene un valor de disponibilidad: {}", 
+                        nombre,
+                        nuevo_estado
+                        );
+                    return Ok(());
+                }
+            }
+    
+        Err(Errores::LibroNoExiste.into())
+    }
+    
+    #[error_code]
+    pub enum Errores{
+        #[msg("Error, no eres el propietario de la cuenta.")]
+        NoEresElOwner,
+
+        #[msg("Error, el libro proporcionado no existe.")]
+        LibroNoExiste,
+                
+    }
 }
 
 #[account]
